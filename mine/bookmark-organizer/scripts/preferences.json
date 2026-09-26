@@ -1,0 +1,13 @@
+{
+  "chrome_bookmark_glob_darwin": "~/Library/Application Support/Google/Chrome/*/Bookmarks",
+  "chrome_bookmark_glob_linux": "~/.config/google-chrome/*/Bookmarks",
+  "default_profile": "Default",
+  "keep_folder_names": ["机场推荐--可删除"],
+  "export_html_name": "书签整理-{date}.html",
+  "export_html_dir": "~/Desktop",
+  "rename": {
+    "prefix_drops": ["(2条消息)", "(36条消息)"],
+    "tail_drops": [" - CSDN博客", "_CSDN博客", " - CSDN"],
+    "max_len": 80
+  }
+}
