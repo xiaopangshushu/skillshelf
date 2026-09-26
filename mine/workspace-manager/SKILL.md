@@ -1,3 +1,8 @@
+---
+name: workspace-manager
+description: 管理 ~/Workspace/ 项目索引：查找项目位置，新增、删除、重命名项目文件夹后同步维护 INDEX.md；只索引到项目文件夹层，不读取项目内部文件
+---
+
 # workspace-manager 技能
 
 用于管理 ~/Workspace/ 下的项目索引。

@@ -1,3 +1,8 @@
+---
+name: meta
+description: ~/Skills 仓库自身治理：新增、移除技能或软链后，同步更新 mine/MANIFEST.md 清单与更新记录
+---
+
 # meta 技能
 仓库自身治理技能（仓库位于 ~/Skills/：本地技能在 mine/，第三方技能在 third-party/）。
 

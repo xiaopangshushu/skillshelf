@@ -7,6 +7,8 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MANIFEST="$SCRIPT_DIR/manifest"
+MINE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/mine"
+MINE_PLATFORMS_FILE="$MINE_DIR/platforms"
 
 SUBCMD="install"
 REQUESTED_PLATFORMS="all"
@@ -19,6 +21,8 @@ POSITIONAL=()
 
 ENTRIES=()
 E_REPO="" E_NAME="" E_PLATS="" E_BASE="" E_DIR=""
+MINE_ENTRIES=()
+M_NAME="" M_NAME_FALLBACK=0
 
 info() { printf '%s\n' "[info] $*"; }
 ok()   { printf '%s\n' "[ok]   $*"; }
@@ -34,14 +38,15 @@ third-party 技能管理脚本
 
 子命令:
   add       添加第三方技能：克隆 + 登记 manifest + 建软链 一步完成
-  install   按 manifest 克隆缺失仓库并建立软链（默认，幂等可重复运行）
+  install   按 manifest 克隆缺失仓库并建立软链，同时为 mine/ 本地技能建立软链
+            （默认子命令，幂等可重复运行）
   update    对已克隆仓库执行 git pull
   remove    移除（删除类操作，先出预览、需确认后才执行）:
               remove                  删除全部条目的软链（不动 manifest 与克隆，install 可恢复）
               remove <目标>           移除该条目: 全平台软链 + manifest 登记行
               remove <目标> --purge   在上者基础上再删除本地克隆目录
               目标 = 仓库目录名 / skill名 / 仓库地址片段
-  list      manifest 与实际状态对照表
+  list      manifest、mine/ 本地技能与实际状态对照表
   help      显示本帮助
 
 选项:
@@ -53,6 +58,15 @@ third-party 技能管理脚本
   --purge             配合 remove 删除本地克隆目录
   --yes               确认执行删除。非交互环境（如 AI 代跑）必须先看过预览再加此参数；
                       交互终端下可不加，脚本会要求输入 yes
+
+mine/ 本地技能:
+  install/list 会同时扫描 mine/ 下含 SKILL.md 的一级子目录，为每个技能建立软链
+  mine 技能的软链平台优先级: --platform 参数 > mine/platforms 文件 > 默认 opencode
+  --platform all 时 mine 技能链到全部已知平台
+  skill名 取 SKILL.md 的 name 字段（缺失时用目录名并警告）；与 manifest 已登记
+  skill名 冲突的条目会跳过并警告，不会覆盖第三方软链
+  以后接入新平台（如 mimo code）: 在脚本 platform_dir() 加一行目录映射，
+  并把平台名写进 mine/platforms，重新运行 install 即可
 
 add 用法:
   install.sh add <仓库地址 或 third-party 里的本地目录> [--platform ...] [--name ...]
@@ -122,6 +136,59 @@ skill_md_name() {
   v="$(sed -n 's/^name:[[:space:]]*//p' "$f" | head -n 1 | sed 's/["'\'']//g')"
   [ -n "$v" ] || return 1
   printf '%s' "$v"
+}
+
+mine_default_platforms() { # mine/platforms 第一条有效行；文件缺失或无有效行时默认 opencode
+  if [ -f "$MINE_PLATFORMS_FILE" ]; then
+    local line
+    while IFS= read -r line || [ -n "$line" ]; do
+      line="$(trim "$line")"
+      case "$line" in
+        ""|"#"*) continue ;;
+      esac
+      printf '%s' "$line"
+      return 0
+    done < "$MINE_PLATFORMS_FILE"
+  fi
+  printf '%s' "opencode"
+}
+
+mine_platforms_for_run() { # 本次运行 mine 技能的软链平台: --platform 参数优先，否则读配置
+  if [ "$PLATFORM_SET" = "1" ]; then
+    printf '%s' "$REQUESTED_PLATFORMS"
+  else
+    mine_default_platforms
+  fi
+}
+
+mine_platforms_source_label() { # list 展示用: 说明当前 mine 平台来自哪里
+  if [ "$PLATFORM_SET" = "1" ]; then
+    printf '%s' "--platform 参数"
+  elif [ -f "$MINE_PLATFORMS_FILE" ]; then
+    printf '%s' "mine/platforms"
+  else
+    printf '%s' "默认值（未找到 mine/platforms）"
+  fi
+}
+
+scan_mine_entries() { # mine/ 一级子目录中含 SKILL.md 的绝对路径 -> MINE_ENTRIES
+  MINE_ENTRIES=()
+  [ -d "$MINE_DIR" ] || return 0
+  local d
+  for d in "$MINE_DIR"/*/; do
+    [ -d "$d" ] || continue
+    [ -f "${d}SKILL.md" ] || continue
+    MINE_ENTRIES+=("$(cd "$d" && pwd)")
+  done
+}
+
+mine_entry_name() { # $1=技能目录 -> M_NAME / M_NAME_FALLBACK(1=缺 name 字段用了目录名)
+  M_NAME="$(skill_md_name "$1" || true)"
+  M_NAME_FALLBACK=0
+  if [ -z "$M_NAME" ]; then
+    M_NAME="$(basename "$1")"
+    M_NAME_FALLBACK=1
+  fi
 }
 
 confirm_or_die() { # $1=确认说明；预览必须先打印
@@ -256,7 +323,61 @@ cmd_install() {
       ensure_link "$p" "$E_NAME" "$E_DIR"
     done
   done
-  info "install 完成: 新克隆 $n_clone，已有 $n_have，异常 $n_fail"
+
+  # ── mine/ 本地技能：扫描一级子目录（含 SKILL.md）建软链 ──
+  local mine_platforms tok
+  mine_platforms="$(mine_platforms_for_run)"
+  for tok in $(printf '%s' "$mine_platforms" | tr ',' ' '); do
+    tok="$(trim "$tok")"
+    [ -n "$tok" ] || continue
+    [ "$tok" = "all" ] || platform_dir "$tok" >/dev/null \
+      || die "mine/platforms 里有未知平台: $tok（可选: opencode, claude, all）"
+  done
+  [ "$mine_platforms" = "all" ] && mine_platforms="opencode claude"
+
+  local mn_names=" " ml
+  for ml in "${ENTRIES[@]}"; do
+    parse_entry "$ml"
+    mn_names="$mn_names$E_NAME "
+  done
+
+  scan_mine_entries
+  local mdir n_mine=0 n_mine_skip=0 m_seen=" "
+  if [ "${#MINE_ENTRIES[@]}" -gt 0 ]; then
+    for mdir in "${MINE_ENTRIES[@]}"; do
+      mine_entry_name "$mdir"
+      local m_name="$M_NAME"
+      if [ "$M_NAME_FALLBACK" = "1" ]; then
+        warn "mine: $mdir/SKILL.md 缺少 name 字段，按目录名 '$m_name' 建软链（建议补 frontmatter）"
+      fi
+      case "$m_seen" in
+        *" $m_name "*)
+          warn "mine: skill名 重复，跳过: $m_name ($mdir)"
+          n_mine_skip=$((n_mine_skip+1))
+          continue
+          ;;
+      esac
+      case "$mn_names" in
+        *" $m_name "*)
+          warn "mine: skill名 '$m_name' 与 manifest 已登记的第三方技能冲突，跳过"
+          n_mine_skip=$((n_mine_skip+1))
+          continue
+          ;;
+      esac
+      m_seen="$m_seen$m_name "
+      n_mine=$((n_mine+1))
+      local p
+      for p in $(printf '%s' "$mine_platforms" | tr ',' ' '); do
+        p="$(trim "$p")"
+        [ -n "$p" ] || continue
+        ensure_link "$p" "$m_name" "$mdir"
+      done
+    done
+  else
+    info "mine/ 下没有含 SKILL.md 的技能目录，跳过本地技能建链"
+  fi
+
+  info "install 完成: 第三方 新克隆 $n_clone / 已有 $n_have / 异常 $n_fail；mine 处理 $n_mine（跳过 $n_mine_skip）"
 }
 
 normalize_repo() {
@@ -583,6 +704,53 @@ cmd_list() {
     [ -n "$linkstat" ] || linkstat=" (无平台声明)"
     printf '%-24s %-14s %-18s %-8s %s%s\n' "$E_BASE" "$E_NAME" "${E_PLATS:-opencode}" "$cloned" "$linkstat" "$nameflag"
   done
+
+  # ── mine/ 本地技能状态 ──
+  local mine_platforms mn_names=" " ml
+  mine_platforms="$(mine_platforms_for_run)"
+  [ "$mine_platforms" = "all" ] && mine_platforms="opencode claude"
+  for ml in "${ENTRIES[@]}"; do
+    parse_entry "$ml"
+    mn_names="$mn_names$E_NAME "
+  done
+  printf '\nmine/ 本地技能（平台: %s；来源: %s）\n' \
+    "$(printf '%s' "$mine_platforms" | tr ' ' ',')" \
+    "$(mine_platforms_source_label)"
+  printf '%-24s %-14s %s\n' "目录" "skill名" "软链状态"
+  scan_mine_entries
+  if [ "${#MINE_ENTRIES[@]}" -gt 0 ]; then
+    local mdir m_name mflag linkstat p dir link
+    for mdir in "${MINE_ENTRIES[@]}"; do
+      mine_entry_name "$mdir"
+      m_name="$M_NAME"
+      mflag=""
+      linkstat=""
+      [ "$M_NAME_FALLBACK" = "1" ] && mflag=" [缺 name 字段]"
+      case "$mn_names" in
+        *" $m_name "*) mflag="$mflag [与 manifest skill名冲突]" ;;
+      esac
+      for p in $(printf '%s' "$mine_platforms" | tr ',' ' '); do
+        p="$(trim "$p")"
+        [ -n "$p" ] || continue
+        dir="$(platform_dir "$p")"
+        link="$dir/$m_name"
+        if [ -L "$link" ]; then
+          if link_points_to "$link" "$mdir"; then
+            linkstat="$linkstat $p:linked"
+          else
+            linkstat="$linkstat $p:wrong-target"
+          fi
+        elif [ -e "$link" ]; then
+          linkstat="$linkstat $p:occupied"
+        else
+          linkstat="$linkstat $p:missing"
+        fi
+      done
+      printf '%-24s %-14s %s%s\n' "$(basename "$mdir")" "$m_name" "$linkstat" "$mflag"
+    done
+  else
+    printf '  （mine/ 下暂无含 SKILL.md 的技能目录）\n'
+  fi
 }
 
 main() {

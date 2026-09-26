@@ -1,3 +1,8 @@
+---
+name: folder-organizer
+description: 扫描指定文件夹并输出整理建议报告（合并、移走、删除、归档建议），只看目录层级不读取文件内容，报告经确认后逐条执行。触发语如「帮我整理 ~/Desktop」「扫描 ~/Downloads」
+---
+
 # folder-organizer 技能
 
 用于扫描指定文件夹，输出整理建议报告，帮助用户优化文件结构。

@@ -1,0 +1,4 @@
+# mine/ 本地技能软链平台配置
+# 规则: 取第一条有效行（空行与 # 开头的行忽略），逗号分隔，可选值见 install.sh 的 platform_dir()
+# 以后接入新终端（如 mimo code）: 先在 install.sh 的 platform_dir() 加目录映射，再在这里追加平台名
+opencode

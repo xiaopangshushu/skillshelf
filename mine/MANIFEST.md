@@ -34,3 +34,4 @@
 - 2026-09-25：仓库迁移至 ~/Skills（mine/ + third-party/），同步更新路径与说明
 - 2026-09-25：新增 workspace-manager 技能条目
 - 2026-09-25：新增 folder-organizer 技能条目
+- 2026-09-26：为全部本地技能 SKILL.md 补充 frontmatter（name/description）；新增 mine/platforms 平台配置；install.sh 的 install/list 开始支持 mine/ 本地技能软链

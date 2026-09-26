@@ -125,6 +125,21 @@ bash third-party/install.sh add https://github.com/xxx/yyy.git
 - 脚本永远创建**绝对路径**软链，指向本目录下对应的克隆项目
 - 目标位置已存在同名目录/软链时，脚本默认跳过并警告；`--force` 可覆盖指向别处的软链，但**永远不会覆盖真实目录**
 
+## mine/ 本地技能联动
+
+`install` 与 `list` 除了处理第三方条目，还会扫描 `../mine/` 下**含 SKILL.md 的一级子目录**，为每个本地技能建立软链：
+
+- **skill名**：取 SKILL.md frontmatter 的 `name` 字段；缺失时用目录名并警告
+- **平台来源优先级**：`--platform` 参数 > `mine/platforms` 文件第一条有效行 > 默认 `opencode`；`--platform all` 时链到全部已知平台
+- **冲突保护**：与 manifest 已登记 skill名 同名的 mine 技能会跳过并警告，不会覆盖第三方软链
+- **幂等**：软链已存在且指向正确时显示 ok，可重复运行
+- `add` / `update` / `remove` 只管第三方条目；mine 软链丢了重跑 `install` 即可恢复
+
+接入新平台（如 mimo code）两步：
+
+1. 在 `install.sh` 的 `platform_dir()` 里加一行目录映射（如 `mimo) printf '%s' "$HOME/.mimo/skills" ;;`）
+2. 把平台名追加进 `mine/platforms`（第三方条目则在 manifest 对应行的平台列里加），重新运行 `install`
+
 ## 如果不想要第三方技能
 
 跳过安装步骤即可。`third-party/` 里没有克隆项目时，你的 Skills 主仓库依然完整可用；软链不存在时各平台只是识别不到对应技能，无其他影响。
