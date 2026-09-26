@@ -1,5 +1,8 @@
 # third-party 第三方技能
 
+> 本仓库在 GitHub 上的名字：**skillshelf**。
+> 别人 clone 后（无论 clone 到本地哪个文件夹），进入仓库目录执行 `bash third-party/install.sh install` 即可一键还原全部第三方技能；OpenCode 用户也可用 `/third-party install`。
+
 本目录存放从 GitHub 克隆的第三方 Skill。
 
 ## 这是什么
