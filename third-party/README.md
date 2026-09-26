@@ -38,12 +38,60 @@
 ### OpenCode 用户
 
 ```
-/third-party install          # 按 manifest 克隆缺失仓库 + 建软链（幂等，可重复运行）
-/third-party update           # 更新已克隆的第三方仓库（git pull）
-/third-party list             # 查看 manifest 与实际安装状态对照表
-/third-party remove           # 只删软链，不动本地克隆
-/third-party remove --purge   # 删软链 + 删除本地克隆
+/third-party add <仓库地址>    # 克隆 + 登记 manifest + 建软链，一步完成（推荐）
+/third-party install           # 按 manifest 克隆缺失仓库 + 建软链（幂等，可重复运行）
+/third-party update            # 更新已克隆的第三方仓库（git pull）
+/third-party list              # 查看 manifest 与实际安装状态对照表
+/third-party remove            # 删除全部条目的软链（不动 manifest/克隆，需确认）
+/third-party remove bbb        # 移除单个条目：软链 + manifest 登记行（需确认）
+/third-party remove bbb --purge  # 再删除本地克隆 third-party/bbb/（需确认）
+/third-party help              # 显示完整帮助
 ```
+
+### 添加新的第三方技能（推荐流程）
+
+不用手写 manifest，一条命令搞定：
+
+```
+/third-party add https://github.com/xxx/yyy.git
+```
+
+脚本会自动完成：克隆到本目录（已克隆则复用）→ 从 `git remote origin` 读取规范仓库地址 → 读取 `SKILL.md` 的 `name` 字段作为 skill名 → 查重 → 追加 manifest → 建软链。
+
+- **已经手动 clone 过**：`/third-party add yyy`，直接登记 `third-party/` 里已有的目录
+- **SKILL.md 没有 name 字段**：加 `--name 手动指定skill名`
+- **要多个平台**：加 `--platform opencode,claude`
+- **仓库已登记过**：打印已有行并确认软链状态，不会产生重复行
+- **skill名 冲突**（不同仓库用了同一个 name）：报错拒绝，避免软链冲突
+- 添加成功后 manifest 有改动，**记得自行 git commit**
+
+### 移除第三方技能
+
+`remove` 是删除类操作，**永远先出预览、确认后才执行**（脚本在非交互环境下必须加 `--yes`，交互终端下要求输入 `yes`）：
+
+| 命令 | 动作 |
+| --- | --- |
+| `remove` | 删除**全部**条目的软链，不动 manifest 和克隆（`install` 可恢复） |
+| `remove bbb` | 移除单个条目：该条目全平台软链 + manifest 登记行，克隆保留 |
+| `remove bbb --purge` | 在上者基础上再删除本地克隆目录 `third-party/bbb/` |
+
+- 目标可以是**仓库目录名 / skill名 / 仓库地址片段**，匹配到多条会列出让你精确指定
+- 定向移除不受 `--platform` 影响（整体注销，删全平台软链）
+- 被删的 manifest 行会打印出来，想恢复照着重新 `add` 即可
+- 软链只删指向本目录克隆的；manifest 改写用临时文件原子替换，不会写坏
+- 移除后 manifest 有改动，**记得自行 git commit**
+
+### 恢复心法
+
+**反悔就 `add`，批量重建就 `install`。**
+
+| 移除操作 | 恢复方式 |
+| --- | --- |
+| `remove` | `install` 一键恢复（manifest 和克隆都没动，只重建软链） |
+| `remove bbb` | `add bbb` 秒恢复（克隆还在，复用不下载，只补登记行 + 软链） |
+| `remove bbb --purge` | `add <仓库地址>` 重新下载（登记行和文件都没了） |
+
+原理：manifest 是唯一事实来源，`install` 只按 manifest 工作。`remove` 不动 manifest 所以可逆；`remove bbb` 删了登记行，install 就"不认识" bbb 了；`--purge` 连文件都删，只能重新下载。
 
 ### 非 OpenCode 用户（如纯 Claude Code）
 
@@ -51,9 +99,10 @@
 
 ```
 bash third-party/install.sh install --platform claude
+bash third-party/install.sh add https://github.com/xxx/yyy.git
 ```
 
-`--platform` 是过滤器（`opencode` / `claude` / `all`）：不带时按 manifest 每行声明的平台执行。
+`--platform` 在 install/remove/list 里是过滤器（`opencode` / `claude` / `all`），不带时按 manifest 每行声明的平台执行；在 add 里指定新条目的平台，默认 `opencode`。
 
 ### 别人 clone 了我的 Skills 之后
 
