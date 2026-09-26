@@ -1,0 +1,9 @@
+# third-party 技能清单
+#
+# 格式: 仓库地址 | skill名 | 平台（可选，逗号分隔）
+#   - skill名 = 软链接目录名，必须等于该仓库 SKILL.md 的 name 字段（不一定等于 GitHub 仓库名）
+#   - 平台不填默认 opencode；可选值: opencode, claude
+#   - 想让技能出现在多个终端: 把平台改成 opencode,claude 后重新运行 install
+#   - 以 # 开头的行为注释
+
+https://github.com/sdyckjq-lab/llm-wiki-skill.git | llm-wiki | opencode

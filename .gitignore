@@ -1,0 +1,9 @@
+# macOS 垃圾文件
+.DS_Store
+
+# third-party：克隆的第三方项目不入库（各自带 .git，避免嵌套仓库）
+# 用 /* 而不是 /，才能用 ! 白名单保留管理文件
+third-party/*
+!third-party/README.md
+!third-party/manifest
+!third-party/install.sh
