@@ -1,6 +1,6 @@
 # third-party 第三方技能
 
-> 本仓库在 GitHub 上的名字：**skillshelf**。
+> 本仓库在 GitHub 上的名字：**skillshelf**。  
 > 别人 clone 后（无论 clone 到本地哪个文件夹），进入仓库目录执行 `bash third-party/install.sh install` 即可一键还原全部第三方技能；OpenCode 用户也可用 `/third-party install`。
 
 本目录存放从 GitHub 克隆的第三方 Skill。
@@ -9,11 +9,11 @@
 
 目录里除以下 3 个管理文件外，其余都是 `git clone` 下来的第三方项目（各自带有自己的 `.git`）：
 
-| 文件 | 作用 | 是否入库 |
-| --- | --- | --- |
-| `README.md` | 本说明 | 是 |
-| `manifest` | 第三方技能清单 | 是 |
-| `install.sh` | 一键安装 / 更新 / 移除脚本 | 是 |
+| 文件           | 作用               | 是否入库 |
+| ------------ | ---------------- | ---- |
+| `README.md`  | 本说明              | 是    |
+| `manifest`   | 第三方技能清单          | 是    |
+| `install.sh` | 一键安装 / 更新 / 移除脚本 | 是    |
 
 > 注意：`third-party/` 本身是主仓库的普通目录，它自己没有 `.git`；嵌套的 `.git` 都在各克隆项目的内部。
 
@@ -72,11 +72,11 @@
 
 `remove` 是删除类操作，**永远先出预览、确认后才执行**（脚本在非交互环境下必须加 `--yes`，交互终端下要求输入 `yes`）：
 
-| 命令 | 动作 |
-| --- | --- |
-| `remove` | 删除**全部**条目的软链，不动 manifest 和克隆（`install` 可恢复） |
-| `remove bbb` | 移除单个条目：该条目全平台软链 + manifest 登记行，克隆保留 |
-| `remove bbb --purge` | 在上者基础上再删除本地克隆目录 `third-party/bbb/` |
+| 命令                   | 动作                                           |
+| -------------------- | -------------------------------------------- |
+| `remove`             | 删除**全部**条目的软链，不动 manifest 和克隆（`install` 可恢复） |
+| `remove bbb`         | 移除单个条目：该条目全平台软链 + manifest 登记行，克隆保留          |
+| `remove bbb --purge` | 在上者基础上再删除本地克隆目录 `third-party/bbb/`           |
 
 - 目标可以是**仓库目录名 / skill名 / 仓库地址片段**，匹配到多条会列出让你精确指定
 - 定向移除不受 `--platform` 影响（整体注销，删全平台软链）
@@ -88,11 +88,11 @@
 
 **反悔就 `add`，批量重建就 `install`。**
 
-| 移除操作 | 恢复方式 |
-| --- | --- |
-| `remove` | `install` 一键恢复（manifest 和克隆都没动，只重建软链） |
-| `remove bbb` | `add bbb` 秒恢复（克隆还在，复用不下载，只补登记行 + 软链） |
-| `remove bbb --purge` | `add <仓库地址>` 重新下载（登记行和文件都没了） |
+| 移除操作                 | 恢复方式                                  |
+| -------------------- | ------------------------------------- |
+| `remove`             | `install` 一键恢复（manifest 和克隆都没动，只重建软链） |
+| `remove bbb`         | `add bbb` 秒恢复（克隆还在，复用不下载，只补登记行 + 软链）  |
+| `remove bbb --purge` | `add <仓库地址>` 重新下载（登记行和文件都没了）          |
 
 原理：manifest 是唯一事实来源，`install` 只按 manifest 工作。`remove` 不动 manifest 所以可逆；`remove bbb` 删了登记行，install 就"不认识" bbb 了；`--purge` 连文件都删，只能重新下载。
 
@@ -116,10 +116,10 @@ bash third-party/install.sh add https://github.com/xxx/yyy.git
 
 ## 软链接规则
 
-| 平台 | 扫描目录 |
-| --- | --- |
+| 平台       | 扫描目录                                |
+| -------- | ----------------------------------- |
 | opencode | `~/.config/opencode/skills/<name>/` |
-| claude | `~/.claude/skills/<name>/` |
+| claude   | `~/.claude/skills/<name>/`          |
 
 - 软链目录名 = manifest 里的 skill名 = SKILL.md 的 `name` 字段
 - 脚本永远创建**绝对路径**软链，指向本目录下对应的克隆项目
